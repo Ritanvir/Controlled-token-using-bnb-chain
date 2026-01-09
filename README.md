@@ -1,57 +1,257 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# ControlledToken Local UI (No DAO)
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+A simple React + Vite UI to interact with a **ControlledToken** smart contract on a **Hardhat local network (chainId: 31337)** using **MetaMask** and **ethers v6**.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+This UI supports:
+- View token symbol / decimals / balance
+- Transfer tokens
+- Admin controls: Trading toggle, Whitelist update, Freeze / Unfreeze wallets
+- Vesting: Create vesting (admin), Claim vested tokens (user)
 
-## Project Overview
+---
 
-This example project includes:
+## Tech Stack
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+- Vite + React
+- ethers (v6)
+- MetaMask
+- Hardhat (local node)
 
-## Usage
+---
 
-### Running Tests
+## Prerequisites
 
-To run all the tests in the project, execute the following command:
+- Node.js (LTS recommended)
+- MetaMask installed in browser
+- Hardhat node running locally (`chainId = 31337`)
+- Deployed `ControlledToken` contract address
+- Contract ABI available in the UI project
 
-```shell
-npx hardhat test
-```
+---
 
-You can also selectively run the Solidity or `node:test` tests:
+## Project Structure (example)
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
-```
+token-ui/
+src/
+App.jsx
+abi.js # ABI exported from here (recommended)
+main.jsx
+index.css
 
-### Make a deployment to Sepolia
+yaml
+Copy code
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+>  Recommended: keep ABI in `src/abi.js` instead of importing JSON artifacts directly.
 
-To run the deployment to a local chain:
+---
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+## Install & Run
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+### 1) Install dependencies
+```bash
+npm install
+2) Start the UI
+bash
+Copy code
+npm run dev
+Open:
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+http://localhost:5173
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+Hardhat Local Setup
+1) Run hardhat node
+In your smart-contract repo:
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+bash
+Copy code
+npx hardhat node
+This starts local RPC at:
 
-After setting the variable, you can run the deployment with the Sepolia network:
+http://127.0.0.1:8545
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+chainId: 31337
+
+2) Deploy the contract
+Example:
+
+bash
+Copy code
+npx hardhat run scripts/deploy.js --network localhost
+Copy the deployed contract address and set it in src/App.jsx:
+
+js
+Copy code
+const TOKEN_ADDRESS = "0x..."; // your deployed token address
+const HARDHAT_CHAIN_ID = 31337;
+MetaMask Setup
+Add local network in MetaMask:
+
+Network name: Hardhat Local
+
+RPC URL: http://127.0.0.1:8545
+
+Chain ID: 31337
+
+Currency symbol: ETH
+
+Import a Hardhat test account into MetaMask
+Use any private key shown in Hardhat node logs.
+
+ABI Setup (Important)
+Option A (Recommended): Use src/abi.js
+Create src/abi.js:
+
+js
+Copy code
+// src/abi.js
+export const CONTROLLED_TOKEN_ABI = [
+  // Paste your contract ABI array here
+];
+Then in App.jsx, import like:
+
+js
+Copy code
+import { CONTROLLED_TOKEN_ABI } from "./abi";
+and create contract like:
+
+js
+Copy code
+const c = new ethers.Contract(TOKEN_ADDRESS, CONTROLLED_TOKEN_ABI, signer);
+ This avoids Vite JSON import issues and keeps the UI clean.
+
+Features & How to Use
+1) Connect MetaMask
+
+Click Connect MetaMask.
+
+The UI will:
+
+Request account access
+
+Warn if not on chainId 31337
+
+Load token meta + balance
+
+Read tradingEnabled
+
+2) Transfer
+
+Enter recipient address
+
+Enter amount (human format, e.g. 10)
+
+Click Send
+
+3) Admin: Trading Toggle
+
+Shows current tradingEnabled status.
+
+Click Toggle Trading
+
+Requires connected wallet to be contract admin/owner (depending on contract logic).
+
+4) Admin: Whitelist
+
+Enter wallet address
+
+Check/uncheck whitelist boolean
+
+Click Update Whitelist
+
+Only admin can update whitelist.
+
+5) Admin: Freeze / Unfreeze
+
+Freeze:
+
+Enter wallet address
+
+Enter seconds
+
+0 = permanent freeze
+
+Click Freeze
+
+Unfreeze:
+
+Enter same wallet address
+
+Click Unfreeze
+
+Only admin can freeze/unfreeze.
+
+6) Vesting
+
+Create vesting (admin):
+
+beneficiary address
+
+amount
+
+start datetime (optional)
+
+cliff seconds (e.g. 86400)
+
+duration seconds (e.g. 2592000)
+Click Create Vesting (admin)
+
+Claim vesting (user):
+
+Click Claim My Vesting
+
+Common Issues
+Blank page / nothing renders
+
+Check browser console for errors.
+Common reasons:
+
+ABI import/export mismatch
+
+Missing ABI file
+
+Wrong import name in abi.js
+
+Example error:
+
+does not provide an export named 'CONTROLLED_TOKEN_ABI'
+
+Fix:
+Ensure abi.js exports exactly:
+
+export const CONTROLLED_TOKEN_ABI = [...]
+
+
+and App.jsx imports:
+
+import { CONTROLLED_TOKEN_ABI } from "./abi";
+
+Wrong network
+
+If MetaMask is not on 31337, contract calls will fail.
+Switch to Hardhat Local network.
+
+Transaction fails (revert)
+
+Likely causes:
+
+Not admin for admin-only functions
+
+Trading disabled and transfer restricted
+
+Address frozen
+
+Whitelist restrictions
+
+Not enough balance
+
+Security Notes
+
+This UI is meant for local development/testing.
+Do not use it for mainnet without:
+
+proper RPC config
+
+production security review
+
+verified & audited contract
+
